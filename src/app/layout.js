@@ -1,6 +1,9 @@
 import { Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import AppToaster from "@/components/AppToaster";
+import Footer from "@/components/Footer";
+import { UserProvider } from "@/context/UserContext";
 
 const hind_siliguri = Hind_Siliguri({
   variable: "--font-hind-siliguri",
@@ -19,9 +22,13 @@ export default function RootLayout({ children }) {
       lang="en"
       className={`${hind_siliguri.className}  h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <Header />
-        {children}
+      <body className="flex min-h-screen flex-col">
+        <UserProvider>
+          <AppToaster />
+          <Header />
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </UserProvider>
       </body>
     </html>
   );

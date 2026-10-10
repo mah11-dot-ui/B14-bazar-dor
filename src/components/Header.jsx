@@ -2,37 +2,39 @@ import React, { Suspense } from 'react';
 import HeaderDate from './HeaderDate';
 import Link from 'next/link';
 import MarqueeText from 'react-marquee-text';
+import { fetchBazarCollection } from '@/lib/bazar-api';
+import NavbarUser from './NavbarUser';
 
 const CategoryNavigation = async () => {
-    const res = await fetch('https://api.api-store.workers.dev/api/bazardor/categories', {
-        cache: 'no-store',
-    });
-
-    if (!res.ok) {
-        throw new Error(`Failed to load categories: ${res.status}`);
+    const categories = await fetchBazarCollection('categories');
+    if (!categories) {
+        return <p role="status">বিভাগগুলো এখন লোড করা যাচ্ছে না।</p>;
     }
 
-    const categories = await res.json();
-    if (!Array.isArray(categories)) {
-        throw new Error('The categories API returned an invalid response.');
-    }
-
-    return categories.map((category) => (
-        <a key={category.id} className="btn btn-ghost mr-3">
-            <div className='mr-3'>{category.icon}</div>
-            <p>{category.nameBn}</p>
-        </a>
-    ));
+    return (
+        <nav aria-label="পণ্যের বিভাগ" className="flex w-max items-center gap-1">
+            {categories.map((category) => (
+                <Link
+                    key={category.id}
+                    href={`/category/${encodeURIComponent(category.id)}`}
+                    className="btn btn-sm btn-ghost whitespace-nowrap sm:btn-md"
+                >
+                    <span className="mr-1">{category.icon}</span>
+                    <span>{category.nameBn}</span>
+                </Link>
+            ))}
+        </nav>
+    );
 };
 
 const ProductMarquee = async () => {
-    const res = await fetch('https://api.api-store.workers.dev/api/bazardor/products', {
-        cache: 'no-store',
-    });
-    const products = await res.json();
+    const products = await fetchBazarCollection('products');
+    if (!products) {
+        return <p className="py-3" role="status">পণ্যের তথ্য এখন লোড করা যাচ্ছে না।</p>;
+    }
 
     return (
-        <div className='py-3'>
+        <div className='overflow-hidden py-3'>
             <MarqueeText duration={12} direction='right'>
                 {products.slice(0, 10).map(product =>
                     <div key={product.id} className='flex items-center gap-3 mr-5'>
@@ -42,7 +44,12 @@ const ProductMarquee = async () => {
                         <div>
                             <h2 className='font-semibold'>{product.nameBn}</h2>
                         </div>
-                        <p>{product.today} টাকা/কেজি  {product.today > product.yesterday ? `▲ ${product.today - product.yesterday}% ` : `▼ ${product.yesterday - product.today}%`}</p>
+                        <p>
+                            {new Intl.NumberFormat("bn-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(product.today)} টাকা/কেজি{' '}
+                            <span className={product.change.dir === 'up' ? 'text-red-500' : product.change.dir === 'down' ? 'text-green-500' : 'text-gray-500'}>
+                                {product.change.dir === 'up' ? '▲' : product.change.dir === 'down' ? '▼' : '−'} {new Intl.NumberFormat("bn-BD", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(product.change.pct))}%
+                            </span>
+                        </p>
                         •
                     </div>
                 )}
@@ -55,9 +62,9 @@ const ProductMarquee = async () => {
 const Header = () => {
     return (
         <div className='border-b border-base-300 py-2'>
-            <div className="navbar w-full max-w-5xl mx-auto">
+            <div className="navbar relative z-20 mx-auto w-full max-w-6xl gap-2 px-3">
                 <div className="flex-1">
-                    <a className="text-xl flex gap-2 items-center">
+                    <Link href={"/"} className="text-xl flex gap-2 items-center">
                         <div className='bg-[#05893E] p-3 rounded-xl'>
                             🛒
                         </div>
@@ -65,7 +72,7 @@ const Header = () => {
                             <p className='font-bold text-[25px]'>বাজার দর</p>
                             <HeaderDate />
                         </div>
-                    </a>
+                    </Link>
                 </div>
                 <div>
                     {/* <div className="dropdown dropdown-end">
@@ -89,12 +96,11 @@ const Header = () => {
                             <li><a>Logout</a></li>
                         </ul>
                     </div> */}
-                    <Link href={"/signIn"} className='font-semibold mr-2'>সাইন ইন</Link>
-                    <button className='btn bg-[#05893E] text-white'>সাইন আপ</button>
+                    <NavbarUser />
                 </div>
             </div>
             <div className='border-t border-b border-base-300'>
-                 <div className='w-full p-[8px] max-w-5xl mx-auto'>
+                 <div className='mx-auto w-full max-w-6xl overflow-x-auto px-2 py-1'>
                     <Suspense fallback={<div>Loading....</div>}>
                         <CategoryNavigation />
                     </Suspense>
